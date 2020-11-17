@@ -8,6 +8,11 @@ from ulauncher.api.version import api_version
 from ulauncher.utils.semver import satisfies
 from ulauncher.utils.mypy_extensions import TypedDict
 
+# change add import
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk  # isort:skip # noqa: E261
+
 
 class ExtensionManifestError(UlauncherAPIError):
     pass
@@ -28,7 +33,10 @@ ManifestPreferenceItem = TypedDict('ManifestPreferenceItem', {
     'name': str,
     'description': str,
     'default_value': str,
-    'options': OptionItems
+    'options': OptionItems,
+
+    # change add icon field
+    'icon': str,
 })
 ManifestJson = TypedDict('ManifestJson', {
     'required_api_version': str,
@@ -65,14 +73,31 @@ class ExtensionManifest:
     def get_description(self) -> str:
         return self.manifest['description']
 
-    def get_icon(self) -> str:
+    # change add icon param
+    def get_icon(self, icon = None) -> str:
+        if icon:
+            return icon
+
         return self.manifest['icon']
 
-    def get_icon_path(self) -> str:
-        return os.path.join(self.extensions_dir, self.extension_id, self.get_icon())
+    # change add icon param
+    def get_icon_path(self, icon = None) -> str:
+        if (icon and len(icon.split(os.extsep)) == 1):
+            # for system icon name, get its file name
+            icon_theme: Gtk.IconTheme = Gtk.IconTheme.get_default()
+            icn: Gtk.IconInfo = icon_theme.lookup_icon(
+                icon, 32, Gtk.IconLookupFlags.GENERIC_FALLBACK
+            )
+            if icn:
+                return icn.get_filename()
+            else:
+                icon = None
 
-    def load_icon(self, size):
-        return load_image(self.get_icon_path(), size)
+        return os.path.join(self.extensions_dir, self.extension_id, self.get_icon(icon))
+
+    # change add icon param
+    def load_icon(self, size, icon = None):
+        return load_image(self.get_icon_path(icon), size)
 
     def get_required_api_version(self) -> str:
         return self.manifest['required_api_version']
